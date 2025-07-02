@@ -37,6 +37,6 @@ if uploaded_file is not None:
 st.markdown("---")
 user_guide_pdf = "UserGuide.pdf"
 if os.path.exists(user_guide_pdf):
-    pdf_viewer(user_guide_pdf)
+    pdf_viewer(user_guide_pdf, width=0)  # 0 means full width in streamlit-pdf-viewer
 else:
     st.info("User guide not found. Please add 'UserGuide.pdf' to the app folder.")
