@@ -54,9 +54,41 @@ def export_to_excel(df_geol, df_loca, df_abbr, template_path, output_path):
         row_idx += 1
     ws_layers.delete_rows(2, ws_layers.max_row)
     layer_row = 2
-    # Group by LOCA_ID and GEOL_LEG (soil code)
+
+    # Group by LOCA_ID, then assign color logic per borehole
+    def to_hex2(val):
+        return format(int(val), "02X")
+
+    def assign_colors(count_groups):
+        # Pastel pink: RGB(255, 209, 220) -> BGR: (220, 209, 255)
+        # Pastel yellow: RGB(255, 229, 180) -> BGR: (180, 229, 255)
+        colors = []
+        if count_groups == 1:
+            colors.append("$808080")
+            return colors
+        for i in range(count_groups):
+            if i == 0:
+                color_hex = "$808080"  # Top layer: grey
+            elif i == count_groups - 1:
+                color_hex = "$B4E5FF"  # Bottom layer: pastel yellow (BGR)
+            else:
+                nIntermediate = count_groups - 2
+                j = i - 1
+                if nIntermediate > 1:
+                    f = j / (nIntermediate)
+                else:
+                    f = 0
+                R = 255
+                G = round(209 + f * (229 - 209))
+                B = round(220 + f * (180 - 220))
+                color_hex = "$" + to_hex2(B) + to_hex2(G) + to_hex2(R)
+            colors.append(color_hex)
+        return colors
+
     if "LOCA_ID" in df_geol.columns and "GEOL_LEG" in df_geol.columns:
         for borehole_id, bh_data in df_geol.groupby("LOCA_ID"):
+            # Each row in bh_data is a layer
+            layers = []
             for leg, layer_data in bh_data.groupby("GEOL_LEG"):
                 start_depth = (
                     layer_data["GEOL_TOP"].min()
@@ -86,14 +118,28 @@ def export_to_excel(df_geol, df_loca, df_abbr, template_path, output_path):
                     abbr_match = df_abbr[df_abbr["ABBR_CODE"] == str(leg)]
                     if not abbr_match.empty:
                         soil_name = abbr_match["ABBR_DESC"].iloc[0]
-                ws_layers.cell(row=layer_row, column=1, value=borehole_id)
-                ws_layers.cell(row=layer_row, column=2, value=thickness)
-                ws_layers.cell(row=layer_row, column=3, value=soil_name)
+                layers.append(
+                    {
+                        "borehole_id": borehole_id,
+                        "thickness": thickness,
+                        "soil_name": soil_name,
+                        "desc": desc,
+                    }
+                )
+            colors = assign_colors(len(layers)) if layers else []
+            for idx, row in enumerate(layers):
+                ws_layers.cell(row=layer_row, column=1, value=row["borehole_id"])
+                ws_layers.cell(row=layer_row, column=2, value=row["thickness"])
+                ws_layers.cell(row=layer_row, column=3, value=row["soil_name"])
                 ws_layers.cell(row=layer_row, column=4, value="GEO_CLAY")
-                ws_layers.cell(row=layer_row, column=5, value="")
+                ws_layers.cell(
+                    row=layer_row,
+                    column=5,
+                    value=colors[idx] if idx < len(colors) else "",
+                )
                 ws_layers.cell(row=layer_row, column=6, value="clDefault")
-                ws_layers.cell(row=layer_row, column=7, value="50")
-                ws_layers.cell(row=layer_row, column=8, value=desc)
+                ws_layers.cell(row=layer_row, column=7, value=50)
+                ws_layers.cell(row=layer_row, column=8, value=row["desc"])
                 ws_layers.cell(row=layer_row, column=9, value="")
                 layer_row += 1
     wb.save(output_path)

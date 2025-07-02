@@ -126,13 +126,11 @@ def main():
                 ws_layers.cell(row=layer_row, column=2, value=row["thickness"])
                 ws_layers.cell(row=layer_row, column=3, value=row["soil_name"])
                 ws_layers.cell(row=layer_row, column=4, value="GEO_CLAY")
-                ws_layers.cell(
-                    row=layer_row,
-                    column=5,
-                    value=colors[idx] if idx < len(colors) else "",
-                )
+                # Soil pattern|Color: assign a default color (grey) for now
+                ws_layers.cell(row=layer_row, column=5, value="$808080")
                 ws_layers.cell(row=layer_row, column=6, value="clDefault")
-                ws_layers.cell(row=layer_row, column=7, value="50")
+                # Soil pattern|Saturation: ensure this is a number, not text
+                ws_layers.cell(row=layer_row, column=7, value=50)
                 ws_layers.cell(row=layer_row, column=8, value=row["desc"])
                 ws_layers.cell(row=layer_row, column=9, value="")
                 layer_row += 1
