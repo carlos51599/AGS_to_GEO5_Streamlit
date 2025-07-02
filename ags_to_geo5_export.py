@@ -3,7 +3,6 @@ import os
 import csv
 import re
 from openpyxl import load_workbook
-from openpyxl.styles import PatternFill
 
 # ---- PARAMETERS ----
 AGS_FILE = "input_file.ags"  # Set your AGS file path
@@ -124,13 +123,8 @@ ws_fieldtests.delete_rows(2, ws_fieldtests.max_row)  # keep header
 
 row_idx = 2
 for i, row in df_loca.iterrows():
-    # Only write rows with a LOCA_ID and at least one coordinate
-    if (
-        not row.get("LOCA_ID", "")
-        and pd.isna(row.get("LOCA_NATN", None))
-        and pd.isna(row.get("LOCA_NATE", None))
-        and pd.isna(row.get("LOCA_GL", None))
-    ):
+    # Only write rows where LOCA_ID is not empty
+    if not row.get("LOCA_ID", ""):
         continue
     ws_fieldtests.cell(row=row_idx, column=1, value=row.get("LOCA_ID", ""))
     ws_fieldtests.cell(row=row_idx, column=2, value="(local set) : Borehole")
@@ -143,44 +137,87 @@ for i, row in df_loca.iterrows():
 # ---- CLEAR AND PREPARE LAYERS SHEET ----
 ws_layers.delete_rows(2, ws_layers.max_row)  # keep header
 
+
+# --- Assign Soil pattern|Color using adapted VBA logic ---
+def to_hex2(val):
+    return format(int(val), "02X")
+
+
+def assign_colors(count_groups):
+    # Pastel pink: RGB(255, 209, 220) -> BGR: (220, 209, 255)
+    # Pastel yellow: RGB(255, 229, 180) -> BGR: (180, 229, 255)
+    colors = []
+    if count_groups == 1:
+        colors.append("$808080")
+        return colors
+    for i in range(count_groups):
+        if i == 0:
+            color_hex = "$808080"  # Top layer: grey
+        elif i == count_groups - 1:
+            color_hex = "$B4E5FF"  # Bottom layer: pastel yellow (BGR)
+        else:
+            nIntermediate = count_groups - 2
+            j = i - 1
+            if nIntermediate > 1:
+                f = j / (nIntermediate)
+            else:
+                f = 0
+            # Interpolate between pastel pink and pastel yellow
+            R = 255
+            G = round(209 + f * (229 - 209))
+            B = round(220 + f * (180 - 220))
+            color_hex = "$" + to_hex2(B) + to_hex2(G) + to_hex2(R)
+        colors.append(color_hex)
+    return colors
+
+
+# Collect and write rows to Layers, assigning colors per borehole
 layer_row = 2
 if "LOCA_ID" in df_geol.columns and "GEOL_LEG" in df_geol.columns:
-    for borehole_id, bh_data in df_geol.groupby("LOCA_ID"):
-        for leg, layer_data in bh_data.groupby("GEOL_LEG"):
-            start_depth = (
-                layer_data["GEOL_TOP"].min()
-                if "GEOL_TOP" in layer_data.columns
-                else None
+    grouped = df_geol.groupby("LOCA_ID")
+    for borehole_id, group in grouped:
+        # Prepare layer data for this borehole
+        borehole_layers = []
+        for i, row in group.iterrows():
+            geol_top = row.get("GEOL_TOP", None)
+            geol_base = row.get("GEOL_BASE", None)
+            try:
+                thickness = float(geol_base) - float(geol_top)
+            except (TypeError, ValueError):
+                thickness = ""
+            desc = row.get("GEOL_DESC", "")
+            borehole_layers.append(
+                {
+                    "borehole_id": borehole_id,
+                    "thickness": thickness,
+                    "soil_name": row.get("GEOL_LEG", ""),
+                    "desc": desc,
+                }
             )
-            end_depth = (
-                layer_data["GEOL_BASE"].max()
-                if "GEOL_BASE" in layer_data.columns
-                else None
-            )
-            thickness = (
-                end_depth - start_depth
-                if start_depth is not None and end_depth is not None
-                else None
-            )
-            desc = "; ".join(
-                layer_data.get("GEOL_DESC", pd.Series("")).astype(str).tolist()
-            )
-            ws_layers.cell(row=layer_row, column=1, value=borehole_id)  # Test name
-            ws_layers.cell(row=layer_row, column=2, value=thickness)  # Thickness
+        # Assign colors for this borehole's layers
+        colors = assign_colors(len(borehole_layers)) if borehole_layers else []
+        # Write rows for this borehole
+        for idx, row in enumerate(borehole_layers):
             ws_layers.cell(
-                row=layer_row, column=3, value=leg
-            )  # Soil name (use GEOL_LEG or ABBR_DESC if available)
+                row=layer_row, column=1, value=row["borehole_id"]
+            )  # Test name
+            ws_layers.cell(row=layer_row, column=2, value=row["thickness"])  # Thickness
+            ws_layers.cell(row=layer_row, column=3, value=row["soil_name"])  # Soil name
             ws_layers.cell(
                 row=layer_row, column=4, value="GEO_CLAY"
             )  # Soil pattern|Pattern
-            ws_layers.cell(row=layer_row, column=5, value="")  # Soil pattern|Color
+            ws_layers.cell(
+                row=layer_row, column=5, value=colors[idx] if idx < len(colors) else ""
+            )  # Soil pattern|Color
             ws_layers.cell(
                 row=layer_row, column=6, value="clDefault"
             )  # Soil pattern|Background
             ws_layers.cell(
                 row=layer_row, column=7, value="50"
             )  # Soil pattern|Saturation
-            ws_layers.cell(row=layer_row, column=8, value=desc)  # Layer description
+            ws_layers.cell(
+                row=layer_row, column=8, value=row["desc"]
+            )  # Layer description
             ws_layers.cell(
                 row=layer_row, column=9, value=""
             )  # EN ISO 14688-1 Classification (blank)
