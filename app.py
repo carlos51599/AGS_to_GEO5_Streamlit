@@ -6,6 +6,8 @@ import tempfile
 import os
 from streamlit_pdf_viewer import pdf_viewer
 
+st.set_page_config(layout="wide")
+
 st.title("AGS to GEO5 Excel Converter")
 st.write("Upload your AGS file and download the GEO5 import Excel file.")
 
