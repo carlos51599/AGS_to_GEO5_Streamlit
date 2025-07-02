@@ -36,6 +36,14 @@ def export_to_excel(df_geol, df_loca, df_abbr, template_path, output_path):
     ws_fieldtests.delete_rows(2, ws_fieldtests.max_row)
     row_idx = 2
     for i, row in df_loca.iterrows():
+        # Only write rows with a LOCA_ID and at least one coordinate
+        if (
+            not row.get("LOCA_ID", "")
+            and pd.isna(row.get("LOCA_NATN", None))
+            and pd.isna(row.get("LOCA_NATE", None))
+            and pd.isna(row.get("LOCA_GL", None))
+        ):
+            continue
         ws_fieldtests.cell(row=row_idx, column=1, value=row.get("LOCA_ID", ""))
         ws_fieldtests.cell(row=row_idx, column=2, value="(local set) : Borehole")
         ws_fieldtests.cell(row=row_idx, column=3, value=row.get("LOCA_NATN", ""))
@@ -50,8 +58,8 @@ def export_to_excel(df_geol, df_loca, df_abbr, template_path, output_path):
         for borehole_id, bh_data in df_geol.groupby("LOCA_ID"):
             for leg, layer_data in bh_data.groupby("GEOL_LEG"):
                 start_depth = (
-                    layer_data["GEOL_DEPTH"].min()
-                    if "GEOL_DEPTH" in layer_data.columns
+                    layer_data["GEOL_TOP"].min()
+                    if "GEOL_TOP" in layer_data.columns
                     else None
                 )
                 end_depth = (
@@ -80,18 +88,11 @@ def export_to_excel(df_geol, df_loca, df_abbr, template_path, output_path):
                 ws_layers.cell(row=layer_row, column=1, value=borehole_id)
                 ws_layers.cell(row=layer_row, column=2, value=thickness)
                 ws_layers.cell(row=layer_row, column=3, value=soil_name)
-                ws_layers.cell(row=layer_row, column=4, value=leg)
+                ws_layers.cell(row=layer_row, column=4, value="GEO_CLAY")
                 ws_layers.cell(row=layer_row, column=5, value="")
                 ws_layers.cell(row=layer_row, column=6, value="clDefault")
                 ws_layers.cell(row=layer_row, column=7, value="50")
                 ws_layers.cell(row=layer_row, column=8, value=desc)
-                ws_layers.cell(row=layer_row, column=9, value=soil_name)
+                ws_layers.cell(row=layer_row, column=9, value="")
                 layer_row += 1
-    yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
-    for row in ws_layers.iter_rows(
-        min_row=2, max_row=ws_layers.max_row, min_col=3, max_col=3
-    ):
-        for cell in row:
-            if cell.value:
-                cell.fill = yellow
     wb.save(output_path)
