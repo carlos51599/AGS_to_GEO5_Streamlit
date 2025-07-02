@@ -23,7 +23,8 @@ def auto_classify(geol_leg):
 
 def export_to_excel(df_geol, df_loca, df_abbr, template_path, output_path):
     # Prepare data
-    for col in ["GEOL_DEPTH", "GEOL_BASE"]:
+    # Ensure numeric columns for all possible top/base naming conventions
+    for col in ["GEOL_TOP", "GEOL_BASE", "GEOL_DEPTH"]:
         if col in df_geol.columns:
             df_geol[col] = pd.to_numeric(df_geol[col], errors="coerce")
     for col in ["LOCA_NATE", "LOCA_NATN", "LOCA_GL"]:

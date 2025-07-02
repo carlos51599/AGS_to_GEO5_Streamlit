@@ -20,7 +20,14 @@ if uploaded_file is not None:
     ags_tables = load_ags_tables(ags_content)
     df_geol = ags_tables["GEOL"]
     df_loca = ags_tables["LOCA"]
-    df_abbr = ags_tables["ABBR"]
+    df_abbr = ags_tables["ABBR"] if "ABBR" in ags_tables else None
+    # Ensure numeric columns for subtraction
+    for col in ["GEOL_TOP", "GEOL_BASE", "GEOL_DEPTH"]:
+        if col in df_geol.columns:
+            df_geol[col] = pd.to_numeric(df_geol[col], errors="coerce")
+    for col in ["LOCA_NATE", "LOCA_NATN", "LOCA_GL"]:
+        if col in df_loca.columns:
+            df_loca[col] = pd.to_numeric(df_loca[col], errors="coerce")
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
         export_to_excel(df_geol, df_loca, df_abbr, TEMPLATE_FILE, tmp.name)
         tmp.seek(0)
