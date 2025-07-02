@@ -46,7 +46,7 @@ def export_to_excel(df_geol, df_loca, df_abbr, template_path, output_path):
         ):
             continue
         ws_fieldtests.cell(row=row_idx, column=1, value=row.get("LOCA_ID", ""))
-        ws_fieldtests.cell(row=row_idx, column=2, value="EN - Standard: Borehole")
+        ws_fieldtests.cell(row=row_idx, column=2, value="EN - Standard : Borehole")
         ws_fieldtests.cell(row=row_idx, column=3, value=row.get("LOCA_NATN", ""))
         ws_fieldtests.cell(row=row_idx, column=4, value=row.get("LOCA_NATE", ""))
         ws_fieldtests.cell(row=row_idx, column=5, value="input")
