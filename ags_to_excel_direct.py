@@ -73,8 +73,8 @@ def main():
     geol = parse_group(content, "GEOL")
     point = parse_group(content, "POINT")
     loca = parse_group(content, "LOCA")
-    # Convert numeric columns
-    for col in ["GEOL_DEPTH", "GEOL_BASE", "GEOL_TOP"]:
+    # Convert numeric columns (force to float, coerce errors to NaN)
+    for col in ["GEOL_TOP", "GEOL_BASE"]:
         if col in geol.columns:
             geol[col] = pd.to_numeric(geol[col], errors="coerce")
     for col in ["LOCA_NATE", "LOCA_NATN", "LOCA_GL"]:
