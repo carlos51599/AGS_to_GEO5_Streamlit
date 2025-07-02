@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from ags_to_geo5.ags_parser import load_ags_tables
 from ags_to_geo5.exporter import export_to_excel
-from user_guide_utils import word_to_image
+from user_guide_utils import word_to_text
 import tempfile
 import os
 
@@ -37,10 +37,8 @@ if uploaded_file is not None:
 st.markdown("---")
 st.header("User Guide")
 user_guide_docx = "UserGuide.docx"
-output_dir = "user_guide_images"
 if os.path.exists(user_guide_docx):
-    image_paths = word_to_image(user_guide_docx, output_dir)
-    for img_path in image_paths:
-        st.image(img_path, use_column_width=True)
+    guide_text = word_to_text(user_guide_docx)
+    st.markdown(guide_text)
 else:
     st.info("User guide not found. Please add 'UserGuide.docx' to the app folder.")
