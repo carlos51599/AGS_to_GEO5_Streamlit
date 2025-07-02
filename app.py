@@ -4,6 +4,7 @@ from ags_to_geo5.ags_parser import load_ags_tables
 from ags_to_geo5.exporter import export_to_excel
 import tempfile
 import os
+from streamlit_pdf_viewer import pdf_viewer
 
 st.title("AGS to GEO5 Excel Converter")
 st.write("Upload your AGS file and download the GEO5 import Excel file.")
@@ -36,9 +37,6 @@ if uploaded_file is not None:
 st.markdown("---")
 user_guide_pdf = "UserGuide.pdf"
 if os.path.exists(user_guide_pdf):
-    st.markdown(
-        f'<iframe src="{user_guide_pdf}" width="100%" height="800px" type="application/pdf"></iframe>',
-        unsafe_allow_html=True,
-    )
+    pdf_viewer(user_guide_pdf)
 else:
     st.info("User guide not found. Please add 'UserGuide.pdf' to the app folder.")
