@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from ags_to_geo5.ags_parser import load_ags_tables
 from ags_to_geo5.exporter import export_to_excel
-from user_guide_utils import word_to_text
+from user_guide_utils import word_to_html
 import tempfile
 import os
 
@@ -38,7 +38,7 @@ st.markdown("---")
 st.header("User Guide")
 user_guide_docx = "UserGuide.docx"
 if os.path.exists(user_guide_docx):
-    guide_text = word_to_text(user_guide_docx)
-    st.markdown(guide_text)
+    guide_html = word_to_html(user_guide_docx)
+    st.markdown(guide_html, unsafe_allow_html=True)
 else:
     st.info("User guide not found. Please add 'UserGuide.docx' to the app folder.")

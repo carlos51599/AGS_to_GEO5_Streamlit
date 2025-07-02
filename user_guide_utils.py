@@ -1,18 +1,18 @@
 # user_guide_utils.py
 
 
-from docx import Document
+import mammoth
 
 
-def word_to_text(docx_path):
+def word_to_html(docx_path):
     """
-    Extracts and returns the full text content of a Word document as a string.
+    Converts a Word document to HTML (preserving formatting and images as base64).
+    Returns the HTML string.
     """
-    doc = Document(docx_path)
-    text = []
-    for para in doc.paragraphs:
-        text.append(para.text)
-    return "\n".join(text)
+    with open(docx_path, "rb") as docx_file:
+        result = mammoth.convert_to_html(docx_file)
+        html = result.value  # The generated HTML
+    return html
 
 
 # Example usage (to be called from app.py):
