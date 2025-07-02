@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from ags_to_geo5.ags_parser import load_ags_tables
 from ags_to_geo5.exporter import export_to_excel
-from user_guide_utils import word_to_images
 import tempfile
 import os
 
@@ -35,15 +34,11 @@ if uploaded_file is not None:
 
 # ---- User Guide Section ----
 st.markdown("---")
-st.header("User Guide")
-user_guide_docx = "UserGuide.docx"
-output_dir = "user_guide_images"
-if os.path.exists(user_guide_docx):
-    try:
-        image_paths = word_to_images(user_guide_docx, output_dir)
-        for img_path in image_paths:
-            st.image(img_path, use_column_width=True)
-    except Exception as e:
-        st.error(f"Failed to render user guide: {e}")
+user_guide_pdf = "UserGuide.pdf"
+if os.path.exists(user_guide_pdf):
+    st.markdown(
+        f'<iframe src="{user_guide_pdf}" width="100%" height="800px" type="application/pdf"></iframe>',
+        unsafe_allow_html=True,
+    )
 else:
-    st.info("User guide not found. Please add 'UserGuide.docx' to the app folder.")
+    st.info("User guide not found. Please add 'UserGuide.pdf' to the app folder.")
