@@ -1,3 +1,6 @@
 streamlit
 pandas
 openpyxl
+docx2pdf
+pdf2image
+pillow

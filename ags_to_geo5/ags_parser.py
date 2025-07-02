@@ -31,6 +31,6 @@ def parse_group(content, group_name):
 
 def load_ags_tables(ags_content):
     geol = parse_group(ags_content, "GEOL")
-    point = parse_group(ags_content, "POINT")
     loca = parse_group(ags_content, "LOCA")
-    return {"GEOL": geol, "POINT": point, "LOCA": loca}
+    abbr = parse_group(ags_content, "ABBR")
+    return {"GEOL": geol, "LOCA": loca, "ABBR": abbr}
