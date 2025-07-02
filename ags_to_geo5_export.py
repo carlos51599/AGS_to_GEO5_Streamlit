@@ -122,82 +122,69 @@ ws_layers = wb["Layers"]
 # ---- CLEAR AND PREPARE FIELDTESTS SHEET ----
 ws_fieldtests.delete_rows(2, ws_fieldtests.max_row)  # keep header
 
-# Map POINT table columns to FieldTests
 row_idx = 2
-for i, row in df_point.iterrows():
-    ws_fieldtests.cell(
-        row=row_idx, column=1, value=row.get("POINT_ID", row.get("LOCA_ID", ""))
-    )  # "Test name"
-    ws_fieldtests.cell(
-        row=row_idx, column=2, value="(local set) : Borehole"
-    )  # "Template"
-    ws_fieldtests.cell(
-        row=row_idx, column=3, value=row.get("LOCA_NATN", "")
-    )  # "Coordinate X"
-    ws_fieldtests.cell(
-        row=row_idx, column=4, value=row.get("LOCA_NATE", "")
-    )  # "Coordinate Y"
-    ws_fieldtests.cell(row=row_idx, column=5, value="input")  # "Elevation"
-    ws_fieldtests.cell(
-        row=row_idx, column=6, value=row.get("LOCA_GL", "")
-    )  # "Coordinate Z"
+for i, row in df_loca.iterrows():
+    # Only write rows with a LOCA_ID and at least one coordinate
+    if (
+        not row.get("LOCA_ID", "")
+        and pd.isna(row.get("LOCA_NATN", None))
+        and pd.isna(row.get("LOCA_NATE", None))
+        and pd.isna(row.get("LOCA_GL", None))
+    ):
+        continue
+    ws_fieldtests.cell(row=row_idx, column=1, value=row.get("LOCA_ID", ""))
+    ws_fieldtests.cell(row=row_idx, column=2, value="(local set) : Borehole")
+    ws_fieldtests.cell(row=row_idx, column=3, value=row.get("LOCA_NATN", ""))
+    ws_fieldtests.cell(row=row_idx, column=4, value=row.get("LOCA_NATE", ""))
+    ws_fieldtests.cell(row=row_idx, column=5, value="input")
+    ws_fieldtests.cell(row=row_idx, column=6, value=row.get("LOCA_GL", ""))
     row_idx += 1
 
 # ---- CLEAR AND PREPARE LAYERS SHEET ----
 ws_layers.delete_rows(2, ws_layers.max_row)  # keep header
 
-# Group GEOL table by borehole and layer, calculate thickness and combine descriptions
 layer_row = 2
-for borehole_id, bh_data in (
-    df_geol.groupby("GEOL_BHID") if "GEOL_BHID" in df_geol.columns else []
-):
-    for layer, layer_data in bh_data.groupby("GEOL_GEOL"):
-        start_depth = (
-            layer_data["GEOL_DEPTH"].min()
-            if "GEOL_DEPTH" in layer_data.columns
-            else None
-        )
-        end_depth = (
-            layer_data["GEOL_BASE"].max() if "GEOL_BASE" in layer_data.columns else None
-        )
-        thickness = (
-            end_depth - start_depth
-            if start_depth is not None and end_depth is not None
-            else None
-        )
-        desc = "; ".join(
-            layer_data.get("GEOL_DESC", pd.Series("")).astype(str).tolist()
-        )
-        geol_leg = layer_data.get("GEOL_LEG", pd.Series("")).iloc[0]
-        soil_class = layer_data["Soil Classification"].iloc[0]
-
-        ws_layers.cell(row=layer_row, column=1, value=borehole_id)  # Test name
-        ws_layers.cell(row=layer_row, column=2, value=thickness)  # Thickness
-        ws_layers.cell(row=layer_row, column=3, value=layer)  # Soil name
-        ws_layers.cell(
-            row=layer_row, column=4, value="GEO_CLAY"
-        )  # Soil pattern|Pattern (adjust as needed)
-        ws_layers.cell(
-            row=layer_row, column=5, value=""
-        )  # Soil pattern|Color (fill later)
-        ws_layers.cell(
-            row=layer_row, column=6, value="clDefault"
-        )  # Soil pattern|Background
-        ws_layers.cell(row=layer_row, column=7, value="50")  # Soil pattern|Saturation
-        ws_layers.cell(row=layer_row, column=8, value=desc)  # Layer description
-        ws_layers.cell(
-            row=layer_row, column=9, value=soil_class
-        )  # EN ISO 14688-1 Classification
-        layer_row += 1
-
-# ---- COLOUR FORMATTING (OPTIONAL) ----
-yellow = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
-for row in ws_layers.iter_rows(
-    min_row=2, max_row=ws_layers.max_row, min_col=3, max_col=3
-):
-    for cell in row:
-        if cell.value:
-            cell.fill = yellow
+if "LOCA_ID" in df_geol.columns and "GEOL_LEG" in df_geol.columns:
+    for borehole_id, bh_data in df_geol.groupby("LOCA_ID"):
+        for leg, layer_data in bh_data.groupby("GEOL_LEG"):
+            start_depth = (
+                layer_data["GEOL_TOP"].min()
+                if "GEOL_TOP" in layer_data.columns
+                else None
+            )
+            end_depth = (
+                layer_data["GEOL_BASE"].max()
+                if "GEOL_BASE" in layer_data.columns
+                else None
+            )
+            thickness = (
+                end_depth - start_depth
+                if start_depth is not None and end_depth is not None
+                else None
+            )
+            desc = "; ".join(
+                layer_data.get("GEOL_DESC", pd.Series("")).astype(str).tolist()
+            )
+            ws_layers.cell(row=layer_row, column=1, value=borehole_id)  # Test name
+            ws_layers.cell(row=layer_row, column=2, value=thickness)  # Thickness
+            ws_layers.cell(
+                row=layer_row, column=3, value=leg
+            )  # Soil name (use GEOL_LEG or ABBR_DESC if available)
+            ws_layers.cell(
+                row=layer_row, column=4, value="GEO_CLAY"
+            )  # Soil pattern|Pattern
+            ws_layers.cell(row=layer_row, column=5, value="")  # Soil pattern|Color
+            ws_layers.cell(
+                row=layer_row, column=6, value="clDefault"
+            )  # Soil pattern|Background
+            ws_layers.cell(
+                row=layer_row, column=7, value="50"
+            )  # Soil pattern|Saturation
+            ws_layers.cell(row=layer_row, column=8, value=desc)  # Layer description
+            ws_layers.cell(
+                row=layer_row, column=9, value=""
+            )  # EN ISO 14688-1 Classification (blank)
+            layer_row += 1
 
 # ---- SAVE OUTPUT ----
 wb.save(OUTPUT_FILE)
